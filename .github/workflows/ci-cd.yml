@@ -20,14 +20,6 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Gradle 캐싱 설정
-        uses: actions/cache@v4
-        with:
-          path: ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
       - name: Gradle Build
         run: |
           chmod +x gradlew
@@ -44,10 +36,12 @@ jobs:
     needs: build
 
     steps:
-      - name: SCP 전 파일 확인
+      - name: SCP 전 파일 존재 여부 확인
         run: |
-          if [ ! -f "./build/libs/csieReserve-0.0.1-SNAPSHOT.jar" ]; then
-            echo "JAR file not found! Exiting."
+          if [ -f "./build/libs/csieReserve-0.0.1-SNAPSHOT.jar" ]; then
+            echo "File exists: ./build/libs/csieReserve-0.0.1-SNAPSHOT.jar"
+          else
+            echo "JAR file not found in ./build/libs! Exiting."
             exit 1
           fi
 
