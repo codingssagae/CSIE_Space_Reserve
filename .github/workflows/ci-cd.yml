@@ -6,98 +6,51 @@ on:
       - main
 
 jobs:
-  build:
-    name: Build & Test
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 코드 체크아웃
+      - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: JDK 설정
+      - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Gradle Build
+      - name: Build with Gradle
         run: |
           chmod +x gradlew
           ./gradlew clean bootJar --info
-          echo "Gradle build completed successfully."
-          echo "Listing build/libs directory:"
+          # 빌드 결과 확인
           ls -la ./build/libs
 
-      - name: Verify JAR File Creation
+      - name: Verify JAR File
         run: |
           if [ -f "./build/libs/csieReserve-0.0.1-SNAPSHOT.jar" ]; then
-            echo "JAR file exists: ./build/libs/csieReserve-0.0.1-SNAPSHOT.jar"
+            echo "JAR file found."
           else
-            echo "JAR file not found in ./build/libs! Exiting."
+            echo "JAR file not found!"
             exit 1
           fi
 
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: build-libs
-          path: ./build/libs/
-
-  deploy:
-    name: Deploy to EC2
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-      - name: Download Build Artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: build-libs
-          path: ./build/libs/
-
-      - name: Debug - List files in workspace
-        run: |
-          echo "Listing all files in workspace:"
-          ls -la
-          echo "Checking Dockerfile existence:"
-          ls -la ./Dockerfile
-
-      - name: EC2에 SSH 접속 및 JAR 파일 업로드
+      - name: Upload code to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "./build/libs/csieReserve-0.0.1-SNAPSHOT.jar"
-          target: "~/app/build/libs/"
+          source: "./"  # 현재 레포지토리의 모든 파일(빌드된 jar 포함)을 서버로 전송
+          target: "~/app"
 
-      - name: Dockerfile 업로드
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "./Dockerfile"
-          target: "~/app/"
-
-      - name: EC2 서버에서 애플리케이션 배포 및 docker-compose 실행
+      - name: Run docker-compose on EC2
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            set -e
             cd ~/app
-            echo "Stopping existing containers..."
-            docker-compose down || true
-            echo "Checking JAR file in build/libs directory..."
-            if [ -f build/libs/csieReserve-0.0.1-SNAPSHOT.jar ]; then
-              mv build/libs/csieReserve-0.0.1-SNAPSHOT.jar ./backend.jar
-              echo "JAR file moved to backend.jar."
-            else
-              echo "JAR file not found in build/libs! Exiting."
-              exit 1
-            fi
-            echo "Starting containers with docker-compose..."
+            docker-compose build
             docker-compose up -d
