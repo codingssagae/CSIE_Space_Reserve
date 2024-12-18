@@ -55,6 +55,13 @@ jobs:
           name: build-libs
           path: ./build/libs/
 
+      - name: Debug - List files in workspace
+        run: |
+          echo "Listing all files in workspace:"
+          ls -la
+          echo "Checking Dockerfile existence:"
+          ls -la ./Dockerfile
+
       - name: EC2에 SSH 접속 및 JAR 파일 업로드
         uses: appleboy/scp-action@v0.1.7
         with:
