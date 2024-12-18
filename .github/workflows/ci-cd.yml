@@ -27,6 +27,7 @@ jobs:
           echo "Gradle build completed successfully."
           echo "Listing build/libs directory:"
           ls -la ./build/libs
+
       - name: Verify JAR File Creation
         run: |
           if [ -f "./build/libs/csieReserve-0.0.1-SNAPSHOT.jar" ]; then
@@ -35,6 +36,7 @@ jobs:
             echo "JAR file not found in ./build/libs! Exiting."
             exit 1
           fi
+
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -55,10 +57,13 @@ jobs:
 
       - name: Create .env File
         run: |
-          echo "MYSQL_USER=${{ secrets.MYSQL_USER }}" >> .env
+          echo "MYSQL_USER=${{ secrets.MYSQL_USER }}" > .env
           echo "MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}" >> .env
           echo "MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}" >> .env
           echo "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" >> .env
+
+      - name: List Files Before Upload
+        run: ls -la .
 
       - name: Upload docker-compose.yml and .env to EC2
         uses: appleboy/scp-action@v0.1.7
@@ -70,6 +75,19 @@ jobs:
             ./docker-compose.yml
             ./.env
           target: "~/app"
+          port: 22
+          timeout: 30s
+          command_timeout: 10m
+          use_insecure_cipher: false
+          rm: false
+          debug: false
+          strip_components: 0
+          overwrite: false
+          tar_dereference: false
+          tar_exec: tar
+          proxy_port: 22
+          proxy_timeout: 30s
+          proxy_use_insecure_cipher: false
 
       - name: Upload JAR File to EC2
         uses: appleboy/scp-action@v0.1.7
@@ -79,6 +97,19 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "./build/libs/csieReserve-0.0.1-SNAPSHOT.jar"
           target: "~/app/"
+          port: 22
+          timeout: 30s
+          command_timeout: 10m
+          use_insecure_cipher: false
+          rm: false
+          debug: false
+          strip_components: 0
+          overwrite: false
+          tar_dereference: false
+          tar_exec: tar
+          proxy_port: 22
+          proxy_timeout: 30s
+          proxy_use_insecure_cipher: false
 
       - name: EC2 서버에서 애플리케이션 재시작
         uses: appleboy/ssh-action@v1.0.0
