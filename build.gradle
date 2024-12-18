@@ -35,6 +35,11 @@ dependencies {
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
-tasks.named() {
-	useJUnitPlatform()
+tasks.named('bootJar') {
+	archiveBaseName.set("csieReserve")
+	archiveVersion.set("0.0.1-SNAPSHOT")
+}
+
+tasks.named('jar') {
+	enabled = true
 }
