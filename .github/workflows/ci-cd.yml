@@ -27,7 +27,6 @@ jobs:
           echo "Gradle build completed successfully."
           echo "Listing build/libs directory:"
           ls -la ./build/libs
-
       - name: Verify JAR File Creation
         run: |
           if [ -f "./build/libs/csieReserve-0.0.1-SNAPSHOT.jar" ]; then
@@ -36,7 +35,6 @@ jobs:
             echo "JAR file not found in ./build/libs! Exiting."
             exit 1
           fi
-
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -55,63 +53,16 @@ jobs:
           name: build-libs
           path: ./build/libs/
 
-      - name: Create .env File (Optional)
-        # 이 단계는 필요하지 않을 수 있습니다. .env가 서버에 이미 있으므로 생략 가능합니다.
-        # 주석 처리하거나 제거할 수 있습니다.
-        run: |
-          echo "MYSQL_USER=${{ secrets.MYSQL_USER }}" > .env
-          echo "MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}" >> .env
-          echo "MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}" >> .env
-          echo "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" >> .env
-
-      - name: List Files Before Upload
-        run: ls -la .
-
-      - name: Upload docker-compose.yml to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "./docker-compose.yml"
-          target: "~/app"
-          port: 22
-          timeout: 30s
-          command_timeout: 10m
-          use_insecure_cipher: false
-          rm: false
-          debug: true  # 디버깅 활성화 (문제 해결 시 유용)
-          strip_components: 0
-          overwrite: false
-          tar_dereference: false
-          tar_exec: tar
-          proxy_port: 22
-          proxy_timeout: 30s
-          proxy_use_insecure_cipher: false
-
-      - name: Upload JAR File to EC2
+      - name: EC2에 SSH 접속 및 배포
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "./build/libs/csieReserve-0.0.1-SNAPSHOT.jar"
-          target: "~/app/"
-          port: 22
-          timeout: 30s
-          command_timeout: 10m
-          use_insecure_cipher: false
-          rm: false
-          debug: false
-          strip_components: 0
-          overwrite: false
-          tar_dereference: false
-          tar_exec: tar
-          proxy_port: 22
-          proxy_timeout: 30s
-          proxy_use_insecure_cipher: false
+          target: "~/app"
 
-      - name: EC2 서버에서 애플리케이션 재시작
+      - name: EC2 서버에서 애플리케이션 배포 및 docker-compose 실행
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -119,9 +70,9 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd ~/app
-            # .env 파일이 올바르게 업로드되었는지 확인 (필요 시)
-            # cat .env
-            # Docker Compose를 사용하여 모든 서비스 재시작
-            docker-compose down
-            docker-compose pull
-            docker-compose up -d --build
+            echo "Stopping existing containers..."
+            docker-compose down || true
+            echo "Updating JAR file in docker-compose directory..."
+            mv csieReserve-0.0.1-SNAPSHOT.jar ./backend.jar
+            echo "Starting containers with docker-compose..."
+            docker-compose up -d
