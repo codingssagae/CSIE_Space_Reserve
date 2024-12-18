@@ -33,6 +33,10 @@ jobs:
           chmod +x gradlew
           ./gradlew build
 
+      - name: 빌드 결과 확인
+        run: |
+          ls -al ./build/libs
+
       - name: Docker 이미지 빌드
         run: |
           docker build -t my-backend:latest .
@@ -68,4 +72,5 @@ jobs:
             cd ~/app
             docker stop backend || true
             docker rm backend || true
-            docker run -d --name backend -p 8080:8080 my-backend:latest
+            docker pull ${{ secrets.DOCKER_USERNAME }}/my-backend:latest
+            docker run -d --name backend -p 8080:8080 ${{ secrets.DOCKER_USERNAME }}/my-backend:latest
