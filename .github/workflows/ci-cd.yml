@@ -23,22 +23,25 @@ jobs:
       - name: Gradle Build
         run: |
           chmod +x gradlew
-          ./gradlew build
+          ./gradlew clean bootJar --info
+          echo "Gradle build completed successfully."
+          echo "Listing build/libs directory:"
+          ls -la ./build/libs
 
-      - name: 빌드 결과 디렉토리 확인
+      - name: Verify JAR File Creation
         run: |
-          echo "Build directory contents:"
-          find ./build
-
-      - name: SCP 전 파일 존재 여부 확인
-        run: |
-          JAR_FILE=$(find ./build/libs -name "*.jar" | head -n 1)
-          if [ -z "$JAR_FILE" ]; then
-            echo "JAR file not found! Exiting."
-            exit 1
+          if [ -f "./build/libs/csieReserve-0.0.1-SNAPSHOT.jar" ]; then
+            echo "JAR file exists: ./build/libs/csieReserve-0.0.1-SNAPSHOT.jar"
           else
-            echo "Found JAR file: $JAR_FILE"
+            echo "JAR file not found in ./build/libs! Exiting."
+            exit 1
           fi
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-libs
+          path: ./build/libs/
 
   deploy:
     name: Deploy to EC2
@@ -46,13 +49,19 @@ jobs:
     needs: build
 
     steps:
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-libs
+          path: ./build/libs/
+
       - name: EC2에 SSH 접속 및 배포
-        uses: appleboy/scp-action@v0.1.4
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "$(find ./build/libs -name '*.jar' | head -n 1)"
+          source: "./build/libs/csieReserve-0.0.1-SNAPSHOT.jar"
           target: "~/app"
 
       - name: EC2 서버에서 애플리케이션 재시작
