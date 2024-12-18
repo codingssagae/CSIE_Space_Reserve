@@ -27,6 +27,7 @@ jobs:
           echo "Gradle build completed successfully."
           echo "Listing build/libs directory:"
           ls -la ./build/libs
+
       - name: Verify JAR File Creation
         run: |
           if [ -f "./build/libs/csieReserve-0.0.1-SNAPSHOT.jar" ]; then
@@ -35,6 +36,21 @@ jobs:
             echo "JAR file not found in ./build/libs! Exiting."
             exit 1
           fi
+
+      - name: Build Docker Image
+        run: |
+          docker build -t spongging/my-backend:latest .
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Push Docker Image
+        run: |
+          docker push spongging/my-backend:latest
+
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -47,22 +63,47 @@ jobs:
     needs: build
 
     steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
       - name: Download Build Artifacts
         uses: actions/download-artifact@v3
         with:
           name: build-libs
           path: ./build/libs/
 
-      - name: EC2에 SSH 접속 및 배포
+      - name: SCP docker-compose.yml and .env to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "./docker-compose.yml,./.env"
+          target: "~/app"
+          port: 22
+          timeout: 30s
+          command_timeout: 10m
+          use_insecure_cipher: false
+          rm: false
+          debug: false
+          strip_components: 0
+          overwrite: false
+          tar_dereference: false
+          tar_exec: tar
+          proxy_port: 22
+          proxy_timeout: 30s
+          proxy_use_insecure_cipher: false
+
+      - name: SCP JAR File to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "./build/libs/csieReserve-0.0.1-SNAPSHOT.jar"
-          target: "~/app"
+          target: "~/app/build/libs/"
 
-      - name: EC2 서버에서 애플리케이션 재시작
+      - name: SSH and Deploy with Docker Compose
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -70,7 +111,5 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd ~/app
-            docker stop backend || true
-            docker rm backend || true
-            docker pull ${{ secrets.DOCKER_USERNAME }}/my-backend:latest
-            docker run -d --name backend -p 8080:8080 ${{ secrets.DOCKER_USERNAME }}/my-backend:latest
+            docker-compose down
+            docker-compose up -d --build
