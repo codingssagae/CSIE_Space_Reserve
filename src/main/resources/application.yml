@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: csieReserve
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://mysql:3306/mysql1
+    username: lee
+    password: 1234
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    show-sql: true
+    hibernate:
+      ddl-auto: create
+    generate-ddl: false
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+  data:
+    redis:
+      host: redis
+      port: 6379
