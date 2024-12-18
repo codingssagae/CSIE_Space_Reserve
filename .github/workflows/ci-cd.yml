@@ -64,6 +64,15 @@ jobs:
           source: "./build/libs/csieReserve-0.0.1-SNAPSHOT.jar"
           target: "~/app/build/libs/"
 
+      - name: Dockerfile 업로드
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "./Dockerfile"
+          target: "~/app/"
+
       - name: EC2 서버에서 애플리케이션 배포 및 docker-compose 실행
         uses: appleboy/ssh-action@v1.0.0
         with:
