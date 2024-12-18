@@ -23,14 +23,8 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew clean bootJar --info
-          # 빌드 결과 확인
           ls -la ./build/libs
-
-      - name: Verify JAR File
-        run: |
-          if [ -f "./build/libs/csieReserve-0.0.1-SNAPSHOT.jar" ]; then
-            echo "JAR file found."
-          else
+          if [ ! -f "./build/libs/csieReserve-0.0.1-SNAPSHOT.jar" ]; then
             echo "JAR file not found!"
             exit 1
           fi
@@ -41,7 +35,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "./"  # 현재 레포지토리의 모든 파일(빌드된 jar 포함)을 서버로 전송
+          source: "./"
           target: "~/app"
 
       - name: Run docker-compose on EC2
@@ -52,5 +46,8 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd ~/app
+            # 기존 컨테이너, 네트워크 정리
+            docker-compose down
+            # 새로 이미지 빌드 후 실행
             docker-compose build
             docker-compose up -d
