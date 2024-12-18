@@ -55,7 +55,16 @@ jobs:
           name: build-libs
           path: ./build/libs/
 
-      - name: EC2에 SSH 접속 및 배포
+      - name: SCP docker-compose.yml and .env to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "./docker-compose.yml,./.env"
+          target: "~/app"
+
+      - name: SCP JAR File to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -64,7 +73,7 @@ jobs:
           source: "./build/libs/csieReserve-0.0.1-SNAPSHOT.jar"
           target: "~/app"
 
-      - name: EC2 서버에서 애플리케이션 재시작
+      - name: SSH and Deploy with Docker Compose
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -72,7 +81,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd ~/app
-            docker stop backend || true
-            docker rm backend || true
-            docker pull ${{ secrets.DOCKER_USERNAME }}/my-backend:latest
-            docker run -d --name backend -p 8080:8080 ${{ secrets.DOCKER_USERNAME }}/my-backend:latest
+            mkdir -p build/libs
+            mv csieReserve-0.0.1-SNAPSHOT.jar build/libs/
+            docker-compose down
+            docker-compose up -d --build
