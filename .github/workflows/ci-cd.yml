@@ -3,7 +3,7 @@ name: CI/CD Pipeline
 on:
   push:
     branches:
-      - main # 메인 브랜치에 푸시할 때 실행
+      - main
 
 jobs:
   build:
@@ -17,7 +17,7 @@ jobs:
       - name: JDK 설정
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin' # OpenJDK 배포판
+          distribution: 'temurin'
           java-version: '17'
 
       - name: Gradle 캐싱 설정
@@ -33,19 +33,10 @@ jobs:
           chmod +x gradlew
           ./gradlew build
 
-      - name: 빌드 결과 확인
+      - name: 빌드 결과 파일 확인
         run: |
+          echo "Build directory contents:"
           ls -al ./build/libs
-
-      - name: Docker 이미지 빌드
-        run: |
-          docker build -t my-backend:latest .
-
-      - name: Docker 이미지 푸시 (옵션)
-        run: |
-          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-          docker tag my-backend:latest ${{ secrets.DOCKER_USERNAME }}/my-backend:latest
-          docker push ${{ secrets.DOCKER_USERNAME }}/my-backend:latest
 
   deploy:
     name: Deploy to EC2
@@ -53,13 +44,20 @@ jobs:
     needs: build
 
     steps:
+      - name: SCP 전 파일 확인
+        run: |
+          if [ ! -f "./build/libs/csieReserve-0.0.1-SNAPSHOT.jar" ]; then
+            echo "JAR file not found! Exiting."
+            exit 1
+          fi
+
       - name: EC2에 SSH 접속 및 배포
         uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "./build/libs/csieReserve-0.0.1-SNAPSHOT.jar"  # 빌드된 JAR 파일 이름
+          source: "./build/libs/csieReserve-0.0.1-SNAPSHOT.jar"
           target: "~/app"
 
       - name: EC2 서버에서 애플리케이션 재시작
