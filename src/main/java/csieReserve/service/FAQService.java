@@ -2,14 +2,14 @@ package csieReserve.service;
 
 import csieReserve.Repository.FAQRepository;
 import csieReserve.domain.for_admin.FAQ;
-import csieReserve.dto.FAQRequestDTO;
-import csieReserve.dto.FAQResponseDTO;
+import csieReserve.dto.request.FAQRequestDTO;
+import csieReserve.dto.response.FAQResponseDTO;
+import csieReserve.exception.ResourceNotFoundException;
 import csieReserve.mapper.FAQMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.channels.FileChannel;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -39,8 +39,8 @@ public class FAQService {
     // FAQ 수정
     @Transactional
     public FAQResponseDTO updateFAQ(Long id, FAQRequestDTO updatedFAQ){
-        Optional<FAQ> faqOptional = faqRepository.findById(id);
-        FAQ faq = faqOptional.get();
+        FAQ faq = faqRepository.findById(id)
+                .orElseThrow(()-> new ResourceNotFoundException("ID가 "+id +"인 FAQ를 찾을 수 없습니다."));
         faq.setQuestion(updatedFAQ.getQuestion());
         faq.setAnswer(updatedFAQ.getAnswer());
         faqRepository.save(faq);
@@ -48,12 +48,12 @@ public class FAQService {
     }
 
     // FAQ 삭제
-    public boolean deleteFAQ(Long id) {
-        if (faqRepository.existsById(id)) {
-            faqRepository.deleteById(id);
-            return true;
+    @Transactional
+    public void deleteFAQ(Long id) {
+        if (!faqRepository.existsById(id)) {
+            throw new ResourceNotFoundException("FAQ with ID " + id + " not found");
         }
-        return false;
+        faqRepository.deleteById(id);
     }
 
 }

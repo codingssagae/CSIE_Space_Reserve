@@ -1,8 +1,8 @@
 package csieReserve.mapper;
 
 import csieReserve.domain.for_admin.FAQ;
-import csieReserve.dto.FAQRequestDTO;
-import csieReserve.dto.FAQResponseDTO;
+import csieReserve.dto.request.FAQRequestDTO;
+import csieReserve.dto.response.FAQResponseDTO;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;

@@ -1,4 +1,4 @@
-package csieReserve.dto;
+package csieReserve.dto.request;
 
 import lombok.Data;
 
