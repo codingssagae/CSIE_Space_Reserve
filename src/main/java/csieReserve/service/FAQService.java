@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -51,9 +50,10 @@ public class FAQService {
     @Transactional
     public void deleteFAQ(Long id) {
         if (!faqRepository.existsById(id)) {
-            throw new ResourceNotFoundException("FAQ with ID " + id + " not found");
+            throw new ResourceNotFoundException("FAQ with ID: " + id + " 찾을 수 없습니다.");
         }
         faqRepository.deleteById(id);
     }
+
 
 }

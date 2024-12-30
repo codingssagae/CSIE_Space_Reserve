@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 @Setter
 @Getter
 public class FAQ {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
