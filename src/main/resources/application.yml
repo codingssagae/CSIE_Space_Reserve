@@ -5,7 +5,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://mysql:3306/mysql1
     username: lee
-    password: ${DB_PASSWORD}
+    password:
   jpa:
     database-platform: org.hibernate.dialect.MySQLDialect
     show-sql: true
@@ -20,3 +20,11 @@ spring:
     redis:
       host: redis
       port: 6379
+
+
+coolsms:
+  api:
+    key:
+    secret:
+  from:
+    number:
